@@ -2,8 +2,8 @@
 import s from '../styles/Home.module.css'
 import React, {useCallback} from 'react'
 import { useState } from 'react';
-import DoneIcon from '../components/DoneIcon';
 import prettyBytes from 'pretty-bytes';
+import Script from 'next/script'
 
 // --- Essential libs for this example
 import Bundlr from '@bundlr-network/client';
@@ -440,9 +440,9 @@ export default function Home() {
             ? <button onClick={() => onClickSignAndUpload()} className={s.btn}>Sign and upload to Arweave</button>
             : 
             <Completed title="Encrypted image uploaded to Arweave!'">
-              View Transaction: <a className={s.link} target="_blank" href={`https://arweave.app/tx/${txId}`}>{`https://arweave.app/tx/${txId}`}</a>
+              View Transaction: <a className={s.link} target="_blank" rel="noreferrer" href={`https://arweave.app/tx/${txId}`}>{`https://arweave.app/tx/${txId}`}</a>
               <br/>
-              Download Link: <a className={s.link} target="_blank" href={`https://arweave.net/${txId}`}>{`https://arweave.net/${txId}`}</a>
+              Download Link: <a className={s.link} target="_blank" rel="noreferrer" href={`https://arweave.net/${txId}`}>{`https://arweave.net/${txId}`}</a>
 
             </Completed>
           }
@@ -502,9 +502,9 @@ export default function Home() {
       <div className={s.footer}>
         <div className={s.footer_title}>References:</div>
         <ul>
-          <li><a target="_blank" href="https://docs.bundlr.network/docs/overview">GitHub</a></li>
-          <li><a target="_blank" href="https://docs.bundlr.network/docs/overview">https://docs.bundlr.network/docs/overview</a></li>
-          <li><a target="_blank" href="https://developer.litprotocol.com/docs/intro">https://developer.litprotocol.com/docs/intro</a></li>
+          <li><a target="_blank" rel="noreferrer" href="https://docs.bundlr.network/docs/overview">GitHub</a></li>
+          <li><a target="_blank" rel="noreferrer" href="https://docs.bundlr.network/docs/overview">https://docs.bundlr.network/docs/overview</a></li>
+          <li><a target="_blank" rel="noreferrer" href="https://developer.litprotocol.com/docs/intro">https://developer.litprotocol.com/docs/intro</a></li>
         </ul>
       </div>
 
@@ -513,7 +513,7 @@ export default function Home() {
         Unfortunately, because NextJS forbids importing CSS modules in dependencies, this library cannot be used in NextJS natively. You must use the vanilla js project above, which will work fine with NextJS.
         READ MORE HERE: https://developer.litprotocol.com/docs/LitTools/shareModal
       */}
-      <script src="https://cdn.jsdelivr.net/npm/lit-share-modal-v2-vanilla-js/dist/index.js"></script>
+      <Script src="https://cdn.jsdelivr.net/npm/lit-share-modal-v2-vanilla-js/dist/index.js"></Script>
 
     </div>
   )
