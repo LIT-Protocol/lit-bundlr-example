@@ -1,69 +1,520 @@
-import Head from 'next/head'
-import Image from 'next/image'
-import styles from '../styles/Home.module.css'
+// --- UI components ( unrelated to the example )
+import s from '../styles/Home.module.css'
+import React, {useCallback} from 'react'
+import { useState } from 'react';
+import DoneIcon from '../components/DoneIcon';
+import prettyBytes from 'pretty-bytes';
+
+// --- Essential libs for this example
+import Bundlr from '@bundlr-network/client';
+import LitJsSdk from 'lit-js-sdk'
+import DropZone from '../components/DropZone';
+import Completed from '../components/Completed';
+import Instruction from '../components/Instruction';
+import Header from '../components/Header';
+
 
 export default function Home() {
+
+  // -- arweave states
+  const [JWK, setJWK] = useState(null);
+  const [arweaveAddress, setArweaveAddress] = useState(null);
+
+  const [currency, setCurrency] = useState('arweave');
+  const [node, setNode] = useState("http://node1.bundlr.network");
+
+  const [file, setFile] = useState(null);
+  const [fileSize, setFileSize] = useState(null);
+  const [txId, setTxId] = useState(null);
+
+  // -- lit states
+  const [accessControlConditions, setAccessControlConditiosn] = useState(null);
+  const [humanised, setHumanised] = useState(null);
+  const [encryptedData, setEncryptedData] = useState(null);
+  const [downloadedEncryptedData, setDownloadedEncryptedData] = useState(null);
+  const [decryptedData, setDecryptedData] = useState(null);
+
+  // -- init litNodeClient
+  const litNodeClient = new LitJsSdk.LitNodeClient();
+  litNodeClient.connect();
+
+  //
+  // (AR) event: when a key file is being dragged to the drop zone
+  // @param { Array } accepted files callback from the input
+  // @return { void } 
+  //
+  const onDropKey = useCallback(async acceptedFiles => {
+
+    const supportedFileTypes = ['application/json'];
+      
+    // Only return a single file
+    const file = acceptedFiles[0];
+
+    // -- validate:: if file type is .json
+    if( ! supportedFileTypes.includes(file.type) ){
+      alert(`Incorrect file type! We only support ${supportedFileTypes.toString()} at the moment`);
+      return;
+    }
+
+    const fileReader = new FileReader();
+    
+    fileReader.onload = async (e) => {
+
+      let _JWK = JSON.parse(e.target.result);
+  
+      console.log("JWK:", _JWK);
+  
+      setJWK(_JWK);
+  
+      // arweave will be dealth from backend
+      const res = await fetch('./api/arweave', {
+        method: 'POST',
+        body: JSON.stringify({
+          currency,
+          node,
+          jwk: _JWK,
+        })
+      });
+  
+      const _arweaveAddress = (await res.json()).address;
+  
+      setArweaveAddress(_arweaveAddress);
+      
+    }
+
+    fileReader.readAsText(file);
+
+  }, []);
+
+  //
+  // (LIT) event: when a file is being dragged to the drop zone
+  // @param { Array } accepted files callback from the input
+  // @return { void } 
+  //
+  const onDropFile = useCallback(async acceptedFiles => {
+
+    const supportedFileTypes = ['image/jpeg', 'image/png'];
+      
+    // Only return a single file
+    const file = acceptedFiles[0];
+
+    // -- validate:: if file type is .json
+    if( ! supportedFileTypes.includes(file.type) ){
+      alert(`Incorrect file type! We only support ${supportedFileTypes.toString()} at the moment`);
+      return;
+    }
+
+    const fileReader = new FileReader();
+
+    fileReader.onload = async (e) => {
+    
+      const dataURL = e.target.result;
+  
+      console.log("DataURL:", dataURL);
+  
+      setFile(dataURL);
+  
+      setFileSize(prettyBytes(dataURL.length));
+  
+    }
+
+    fileReader.readAsDataURL(file);
+
+  }, []);
+
+  // 
+  // (LIT) Close share modal
+  // @return { void }
+  // 
+  const closeModal = () => {
+    ACCM.ReactContentRenderer.unmount(document.getElementById("shareModal"));
+  }
+
+  // 
+  // (LIT) Set access control conditions
+  // @return { void }
+  // 
+  const onClickSetAccessControl = () => {
+
+    ACCM.ReactContentRenderer.render(
+      ACCM.ShareModal,
+      {
+        sharingItem: [],
+        onAccessControlConditionsSelected: async (accessControlConditions) => {
+
+          console.log("accessControlConditions:", accessControlConditions);
+
+          let humanised = await LitJsSdk.humanizeAccessControlConditions({accessControlConditions: accessControlConditions.accessControlConditions})
+          
+          console.log("humanised:", humanised);
+            
+          setAccessControlConditiosn(accessControlConditions);
+          
+          setHumanised(humanised);
+
+          closeModal();
+
+        },
+        onClose: closeModal,
+        getSharingLink: (sharingItem) => {},
+        showStep: "ableToAccess",
+      },
+      document.getElementById('shareModal'),
+    );
+
+  }
+
+  // 
+  // (LIT) Encrypt image data
+  // @return { void } 
+  // 
+  const onClickEncryptImage = async () => {
+
+    const fileInBase64 = btoa(file);
+
+    console.log("fileInBase64:", fileInBase64);
+    
+    const chain = 'ethereum';
+
+    const authSig = await LitJsSdk.checkAndSignAuthMessage({chain})
+
+    // Visit here to understand how to encrypt static content
+    // https://developer.litprotocol.com/docs/LitTools/JSSDK/staticContent
+    const { encryptedString, symmetricKey } = await LitJsSdk.encryptString(fileInBase64);
+    
+    const encryptedSymmetricKey = await litNodeClient.saveEncryptionKey({
+      accessControlConditions: accessControlConditions.accessControlConditions,
+      symmetricKey,
+      authSig,
+      chain,
+    });
+    
+    console.log("encryptedString:", encryptedString);
+
+    const encryptedStringInDataURI = await blobToDataURI(encryptedString);
+
+    console.log("encryptedStringInDataURI:", encryptedStringInDataURI);
+
+    setEncryptedData(encryptedStringInDataURI);
+
+    localStorage['lit-e-key'] = encryptedSymmetricKey;
+    
+  }
+
+  // 
+  // (AR) Sign and upload to arweave
+  // @return { void } 
+  // 
+  const onClickSignAndUpload = async () => {
+
+    console.log('onClickSignAndUpload');
+    
+    const packagedData = {
+      encryptedData: await encryptedData,
+      accessControlConditions: accessControlConditions.accessControlConditions,
+    };
+
+    console.log("packagedData:", packagedData);
+
+    const packagedDataInBase64 = btoa(JSON.stringify(packagedData));
+
+    console.log("btoa:", packagedDataInBase64);
+
+    // console.log("atob:", JSON.parse(atob(packagedDataInBase64)));
+
+    console.log("packagedDataInBase64:", packagedDataInBase64);
+
+    // (POST) Get estimate to upload and sign
+    const gastimateResult = (await (await fetch('./api/arweave/gastimate', {
+      method: 'POST',
+      body: JSON.stringify({
+        currency,
+        node,
+        jwk: JWK,
+        encryptedData: packagedDataInBase64,
+      })
+    })).json()).gastimate;
+  
+    // -- Stop if 'cancel' is selected
+    if( ! confirm(gastimateResult)) return;
+    
+    // (POST) Get estimate to upload and sign
+    const upload = await fetch('./api/arweave/upload', {
+      method: 'POST',
+      body: JSON.stringify({
+        currency,
+        node,
+        jwk: JWK,
+        encryptedData: packagedDataInBase64,
+      })
+    });
+
+    const txId = (await upload.json()).txId;
+
+    console.log("Uploaded! Transaction ID:", txId);
+
+    setTxId(txId);
+    
+  }
+
+  //
+  // (Helper) Turn blob data to data URI
+  // @param { Blob } blob
+  // @return { Promise<String> } blob data in data URI
+  //
+  const blobToDataURI = (blob) => {
+    return new Promise((resolve, reject) => {
+        var reader = new FileReader();
+
+        reader.onload = (e) => {
+        var data = e.target.result;
+        resolve(data);
+        };
+        reader.readAsDataURL(blob);
+    });
+  }
+
+  //
+  // (Helper) Convert data URI to blob
+  // @param { String } dataURI
+  // @return { Blob } blob object
+  //
+  const dataURItoBlob = (dataURI) => {
+
+    console.log(dataURI);
+
+    
+    var byteString = window.atob(dataURI.split(',')[1]);
+    var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]
+    var ab = new ArrayBuffer(byteString.length);
+    var ia = new Uint8Array(ab);
+    for (var i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    
+    var blob = new Blob([ab], {type: mimeString});
+
+    return blob;
+  }
+
+  // 
+  // (GET) Fetch Encrypted Data
+  // @return { void }
+  // 
+  const onFetchEncryptedData = async () => {
+    
+    const downloadUrl = 'https://arweave.net/' + txId;
+
+    const data = await fetch(downloadUrl);
+
+    const encryptedData = JSON.parse(atob(await data.text()));
+
+    console.log("encryptedData:", encryptedData);
+
+    setDownloadedEncryptedData(encryptedData);
+
+    // Get the decrypted key
+
+    // console.log(localStorage['lit-e-key']);
+
+  }
+
+  // 
+  // (LIT) Decrypt downloaded encrypted data
+  // @return { void }
+  // 
+  const onDecryptDownloadedData = async () => {
+    
+    // get the encrypted key from the local storage, and convert it back to Uint8Array
+    const encryptedKey = new Uint8Array(localStorage['lit-e-key'].split(','));
+
+    const authSig = await LitJsSdk.checkAndSignAuthMessage({chain: 'ethereum'})
+
+    const symmetricKey = await litNodeClient.getEncryptionKey({
+      accessControlConditions: downloadedEncryptedData.accessControlConditions,
+      // Note, below we convert the encryptedSymmetricKey from a UInt8Array to a hex string.  This is because we obtained the encryptedSymmetricKey from "saveEncryptionKey" which returns a UInt8Array.  But the getEncryptionKey method expects a hex string.
+      toDecrypt: LitJsSdk.uint8arrayToString(encryptedKey, "base16"),
+      chain: 'ethereum',
+      authSig,
+    });
+
+    // console.log("symmetricKey:", symmetricKey);
+
+    const decryptedString = await LitJsSdk.decryptString(
+      dataURItoBlob(downloadedEncryptedData.encryptedData),
+      symmetricKey
+    );
+
+    const originalFormat = atob(decryptedString);
+
+    console.log("Original Format:", originalFormat);
+
+    setDecryptedData(originalFormat);
+
+  }
+
   return (
-    <div className={styles.container}>
-      <Head>
-        <title>Create Next App</title>
-        <meta name="description" content="Generated by create next app" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+    <div className={s.content}>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
+      {/* ----- Lit Share Modal ----- */}
+      {/* 
+        Hidden in the background, but will appear when you click to 
+        set the access control conditions
+      */}
+      <div id="shareModal"></div>
 
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
+      {/* ----- Header ----- */}
+      <Header
+        title="Here's an example of how to use Bundlr / Arweave with Lit."
+      />
 
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
+      {/* ==================== Encryption ==================== */}
+      <h2>Encryption</h2>
+      
+      {/* ----- Step 1 ----- */}
+      <Instruction title='1. Drop your wallet.json keyfile to login' subtitle='We will NEVER store your key'/>
 
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
+      {
+        JWK == null
+        ? <DropZone onDrop={ onDropKey }/>
+        : <Completed title="Arweave JWK key loaded!" subtitle={`Address: ${arweaveAddress}`}/>
+      }
 
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
+      {/* ----- Step 2 ----- */}
+      {
+        (!JWK) ? '' : 
+        <>
+          <Instruction title='2. Select an image you want to upload' />
+    
+          {
+            (JWK == null || file == null) 
+            ? <DropZone onDrop={ onDropFile }/> 
+            : <Completed title="Got your image!" subtitle={`Size: ${ fileSize }`}/>
+          }
+        </>
+      }
 
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
+      {/* ----- Step 3 ----- */}
+      {
+        (!JWK || !file) ? '' 
+        : 
+        <>
+          <Instruction title='3. Set access control conditions of your image' />
+          
+          {
+            ( !JWK || !file || !accessControlConditions )
+            ? <button onClick={() => onClickSetAccessControl()} className={s.btn}>Set Access Control Conditions</button>
+            : <Completed title="Access control conditions set!" subtitle={`${ humanised }`}/>
+          }
 
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
+        </>
+      }
+
+      {/* ----- Step 4 ----- */}
+      {
+        (!JWK || !file || !accessControlConditions) ? '' 
+        : 
+        <>
+          <Instruction title='4. Click to encrypt image' subtitle="We will turn the file into a string format, encrypt it and save the encryption key to the node" />
+          
+          {
+            ( !JWK || !file || !accessControlConditions || !encryptedData )
+            ? <button onClick={() => onClickEncryptImage()} className={s.btn}>Encrypt Image</button>
+            : <Completed title="Image encrypted!'" subtitle="Encrypted key is stored to your local storage as 'lit-e-key'"/>
+          }
+
+        </>
+      }
+
+      {/* ----- Step 5 ----- */}
+      {
+        (!JWK || !file || !accessControlConditions || !encryptedData ) ? '' 
+        : 
+        <>
+          <Instruction title='5. Click to sign and upload to Arweave'
+            subtitle='We will combine both access control conditions and the image data as JSON, turn it into String, and encode it with base64'
+          />
+          
+          {
+            ( !JWK || !file || !accessControlConditions || !encryptedData || !txId )
+            ? <button onClick={() => onClickSignAndUpload()} className={s.btn}>Sign and upload to Arweave</button>
+            : 
+            <Completed title="Encrypted image uploaded to Arweave!'">
+              View Transaction: <a className={s.link} target="_blank" href={`https://arweave.app/tx/${txId}`}>{`https://arweave.app/tx/${txId}`}</a>
+              <br/>
+              Download Link: <a className={s.link} target="_blank" href={`https://arweave.net/${txId}`}>{`https://arweave.net/${txId}`}</a>
+
+            </Completed>
+          }
+
+        </>
+      }
+
+      {/* ==================== Decryption ==================== */}
+
+      {/* ----- Step 6 ----- */}
+      {
+        (!JWK || !file || !accessControlConditions || !encryptedData || !txId ) ? '' 
+        : 
+        <>
+          <h2>Decryption</h2>
+          
+          <Instruction title='6. Click to fetch the encrypted data from Arweave' subtitle="The encrypted data will be in base64, so we have to decode it and parse it as JSON. You will see there are 'encryptedData' and 'accessControlConditions' keys in the JSON data "/>
+          
+          {
+            (!JWK || !file || !accessControlConditions || !encryptedData || !downloadedEncryptedData ) 
+            ? <button onClick={() => onFetchEncryptedData()} className={s.btn}>{`https://arweave.net/${txId}`}</button>
+            : 
+            <Completed title="Encrypted data downloaded" className={s.code}>
+                <code className={s.code}>
+                { JSON.stringify(downloadedEncryptedData) }
+                </code>
+            </Completed>
+          }
+        </>
+      }
+      
+      {/* ----- Step 7 ----- */}
+      {
+        (!JWK || !file || !accessControlConditions || !encryptedData || !txId || !downloadedEncryptedData ) ? '' 
+        : 
+        <>
+          <Instruction title='7. Click to decrypt the downloaded encrypted data' subtitle="We will get the encrypted symmetric key from local storage, check the authentication signature and get the symmetric key, then use the symmetric key to decrypt the encrypted data"/>
+          
+          {
+            (!JWK || !file || !accessControlConditions || !encryptedData || !downloadedEncryptedData || !decryptedData ) 
+            ? <button onClick={() => onDecryptDownloadedData()} className={s.btn}>{'Decrypt downloaded encrypted data'}</button>
+            : 
+            <Completed title="Done. Data decrypted!" className={s.code}>
+                <img src={decryptedData} />
+            </Completed>
+          }
+        </>
+      }
+
+      
+
+      {/* ----- Docs ----- */}
+      {/* 
+        Please visit the following links for more information, or 
+        contact us via email, discord, twitter, etc.
+      */}
+      <div className={s.footer}>
+        <div className={s.footer_title}>References:</div>
+        <ul>
+          <li><a target="_blank" href="https://docs.bundlr.network/docs/overview">GitHub</a></li>
+          <li><a target="_blank" href="https://docs.bundlr.network/docs/overview">https://docs.bundlr.network/docs/overview</a></li>
+          <li><a target="_blank" href="https://developer.litprotocol.com/docs/intro">https://developer.litprotocol.com/docs/intro</a></li>
+        </ul>
+      </div>
+
+      {/* ----- Required JS libraries ----- */}
+      {/* 
+        Unfortunately, because NextJS forbids importing CSS modules in dependencies, this library cannot be used in NextJS natively. You must use the vanilla js project above, which will work fine with NextJS.
+        READ MORE HERE: https://developer.litprotocol.com/docs/LitTools/shareModal
+      */}
+      <script src="https://cdn.jsdelivr.net/npm/lit-share-modal-v2-vanilla-js/dist/index.js"></script>
+
     </div>
   )
 }
