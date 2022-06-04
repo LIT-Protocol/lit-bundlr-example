@@ -502,7 +502,7 @@ export default function Home() {
       <div className={s.footer}>
         <div className={s.footer_title}>References:</div>
         <ul>
-          <li><a target="_blank" rel="noreferrer" href="https://docs.bundlr.network/docs/overview">GitHub</a></li>
+          <li><a target="_blank" rel="noreferrer" href="https://github.com/LIT-Protocol/lit-bundlr-example">GitHub</a></li>
           <li><a target="_blank" rel="noreferrer" href="https://docs.bundlr.network/docs/overview">https://docs.bundlr.network/docs/overview</a></li>
           <li><a target="_blank" rel="noreferrer" href="https://developer.litprotocol.com/docs/intro">https://developer.litprotocol.com/docs/intro</a></li>
         </ul>
