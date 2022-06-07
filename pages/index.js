@@ -418,7 +418,7 @@ export default function Home() {
           {
             ( !JWK || !file || !accessControlConditions || !encryptedData )
             ? <button onClick={() => onClickEncryptImage()} className={s.btn}>Encrypt Image</button>
-            : <Completed title="Image encrypted!" subtitle="Encrypted key is stored to your local storage as 'lit-e-key'"/>
+            : <Completed title="Image encrypted!" subtitle="Encrypted key is stored to lit nodes"/>
           }
 
         </>
