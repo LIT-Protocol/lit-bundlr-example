@@ -69,6 +69,13 @@
   font-size: 14px;
   color: #8159d9;
 }
+.text > a{
+  border-bottom: 1px solid white;
+}
+.text{
+  font-size: 14px;
+  color: #8159d9;
+}
 
 .done{
   border-radius: 8px;

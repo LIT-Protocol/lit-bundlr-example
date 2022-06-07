@@ -6,7 +6,6 @@ import prettyBytes from 'pretty-bytes';
 import Script from 'next/script'
 
 // --- Essential libs for this example
-import Bundlr from '@bundlr-network/client';
 import LitJsSdk from 'lit-js-sdk'
 import DropZone from '../components/DropZone';
 import Completed from '../components/Completed';
@@ -216,13 +215,11 @@ export default function Home() {
 
     console.log("packagedData:", packagedData);
 
-    const packagedDataInBase64 = btoa(JSON.stringify(packagedData));
+    const packagedDataInString = JSON.stringify(packagedData);
 
-    console.log("btoa:", packagedDataInBase64);
+    console.log("btoa:", packagedDataInString);
 
-    // console.log("atob:", JSON.parse(atob(packagedDataInBase64)));
-
-    console.log("packagedDataInBase64:", packagedDataInBase64);
+    console.log("packagedDataInString:", packagedDataInString);
 
     // (POST) Get estimate to upload and sign
     const gastimateResult = (await (await fetch('./api/arweave/gastimate', {
@@ -231,7 +228,7 @@ export default function Home() {
         currency,
         node,
         jwk: JWK,
-        encryptedData: packagedDataInBase64,
+        encryptedData: packagedDataInString,
       })
     })).json()).gastimate;
   
@@ -245,7 +242,7 @@ export default function Home() {
         currency,
         node,
         jwk: JWK,
-        encryptedData: packagedDataInBase64,
+        encryptedData: packagedDataInString,
       })
     });
 
@@ -307,7 +304,7 @@ export default function Home() {
 
     const data = await fetch(downloadUrl);
 
-    const encryptedData = JSON.parse(atob(await data.text()));
+    const encryptedData = JSON.parse(await data.text());
 
     console.log("encryptedData:", encryptedData);
 
@@ -367,12 +364,16 @@ export default function Home() {
       <Header
         title="Here's an example of how to use Bundlr / Arweave with Lit."
       />
+  
+      <h2>Prerequisite</h2>
+      <div className={s.text}>1. You will need to have an Arweave wallet already, if not click <a href="https://arweave.app/">here</a></div>
+      <div className={s.text}>2. You will need to fund the node, more info <a href="https://docs.bundlr.network/docs/client/cli">here</a></div>
 
       {/* ==================== Encryption ==================== */}
       <h2>Encryption</h2>
       
       {/* ----- Step 1 ----- */}
-      <Instruction title='1. Drop your wallet.json keyfile to login' subtitle='We will NEVER store your key'/>
+      <Instruction title='1. Drop your wallet.json keyfile to login' subtitle='It uses the FileReader API to read the file as text and pass it to the Bundlr constructor to get its wallet address'/>
 
       {
         JWK == null
@@ -384,7 +385,7 @@ export default function Home() {
       {
         (!JWK) ? '' : 
         <>
-          <Instruction title='2. Select an image you want to upload' />
+          <Instruction title='2. Select an image you want to upload' subtitle="It uses the FileReader API to read the image as data URL" />
     
           {
             (JWK == null || file == null) 
@@ -399,7 +400,7 @@ export default function Home() {
         (!JWK || !file) ? '' 
         : 
         <>
-          <Instruction title='3. Set access control conditions of your image' />
+          <Instruction title='3. Set access control conditions of your image' subtitle="Prepare access control conditions for lit nodes to sign later"/>
           
           {
             ( !JWK || !file || !accessControlConditions )
@@ -415,12 +416,12 @@ export default function Home() {
         (!JWK || !file || !accessControlConditions) ? '' 
         : 
         <>
-          <Instruction title='4. Click to encrypt image' subtitle="We will turn the file into a string format, encrypt it and save the encryption key to the node" />
+          <Instruction title='4. Click to encrypt image' subtitle="Since the 'encryptString' function requires a String, we will turn the file into a string format, encrypt it and save the encryption key to lit nodes" />
           
           {
             ( !JWK || !file || !accessControlConditions || !encryptedData )
             ? <button onClick={() => onClickEncryptImage()} className={s.btn}>Encrypt Image</button>
-            : <Completed title="Image encrypted!'" subtitle="Encrypted key is stored to your local storage as 'lit-e-key'"/>
+            : <Completed title="Image encrypted!" subtitle="Encrypted key is stored to your local storage as 'lit-e-key'"/>
           }
 
         </>
@@ -432,7 +433,7 @@ export default function Home() {
         : 
         <>
           <Instruction title='5. Click to sign and upload to Arweave'
-            subtitle='We will combine both access control conditions and the image data as JSON, turn it into String, and encode it with base64'
+            subtitle='We will combine both access control conditions and the encrypted image data as JSON, and turn it into String format'
           />
           
           {
@@ -459,7 +460,7 @@ export default function Home() {
         <>
           <h2>Decryption</h2>
           
-          <Instruction title='6. Click to fetch the encrypted data from Arweave' subtitle="The encrypted data will be in base64, so we have to decode it and parse it as JSON. You will see there are 'encryptedData' and 'accessControlConditions' keys in the JSON data "/>
+          <Instruction title='6. Click to fetch the encrypted data from Arweave' subtitle="The returned JSON data will have the encrypted image data (encryptedData), and one of the three parameters (accessControlConditions) required to retrieve the key shares from the lit nodes"/>
           
           {
             (!JWK || !file || !accessControlConditions || !encryptedData || !downloadedEncryptedData ) 
@@ -479,7 +480,7 @@ export default function Home() {
         (!JWK || !file || !accessControlConditions || !encryptedData || !txId || !downloadedEncryptedData ) ? '' 
         : 
         <>
-          <Instruction title='7. Click to decrypt the downloaded encrypted data' subtitle="We will get the encrypted symmetric key from local storage, check the authentication signature and get the symmetric key, then use the symmetric key to decrypt the encrypted data"/>
+          <Instruction title='7. Click to decrypt the downloaded encrypted data' subtitle="In the last step, we retrieved 'accessControlConditions' as one of our required parameters to unlock the symmetric key, we will then retrieve the encrypted symmetric key from your browser local storage, and finally gather the authentication signature from your wallet. Now that we got the symmetric key, we can pass both symmetric key and encrypted data to the decryption function to unlock the original image"/>
           
           {
             (!JWK || !file || !accessControlConditions || !encryptedData || !downloadedEncryptedData || !decryptedData ) 

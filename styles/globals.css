@@ -17,3 +17,8 @@ a {
 * {
   box-sizing: border-box;
 }
+
+h2{
+  border-bottom: .5px dashed grey;
+  padding-bottom: 8px;
+}
