@@ -361,7 +361,8 @@ export default function Home() {
       <Header
         title="Here's an example of how to use Bundlr / Arweave with Lit."
       />
-  
+
+      {/* ==================== Prerequisite ==================== */}
       <h2>Prerequisite</h2>
       <div className={s.text}>1. You will need to have an Arweave wallet already, if not click <a target="_blank" rel="noreferrer" href="https://arweave.app/">here</a></div>
       <div className={s.text}>2. You will need to fund the node (it might take up to an hour), more info <a target="_blank" rel="noreferrer" href="https://docs.bundlr.network/docs/client/cli">here</a></div>
