@@ -2,4 +2,4 @@
 
 This is an example project of showing you how to use bundlr/arweave with lit in the browser and on the backend
 
-## 
+Demo here: https://lit-bundlr.herokuapp.com/
