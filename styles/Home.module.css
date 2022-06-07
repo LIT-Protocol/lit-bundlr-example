@@ -8,11 +8,15 @@
   width: 88%;
   margin-bottom: 128px;
 }
+.content h1, .content h2{
+  color: white;
+}
 .header{
   padding-top: 24px;
 }
 
 .dropzone{
+  color: white;
   width: 256px;
   background: #1B1B1B;
   border: #AAAAAA 2px dashed;
@@ -61,6 +65,7 @@
   color: white;
 }
 .step{
+  color: white;
   margin-bottom: 32px;
   margin-top: 32px;
 }
@@ -78,6 +83,7 @@
 }
 
 .done{
+  color: white;
   border-radius: 8px;
   background: #8159d9;
   padding: 8px;
