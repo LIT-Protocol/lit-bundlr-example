@@ -30,6 +30,7 @@ export default function Home() {
   const [accessControlConditions, setAccessControlConditiosn] = useState(null);
   const [humanised, setHumanised] = useState(null);
   const [encryptedData, setEncryptedData] = useState(null);
+  const [encryptedSymmetricKey, setEncryptedSymmetricKey] = useState(null);
   const [downloadedEncryptedData, setDownloadedEncryptedData] = useState(null);
   const [decryptedData, setDecryptedData] = useState(null);
 
@@ -196,7 +197,7 @@ export default function Home() {
 
     setEncryptedData(encryptedStringInDataURI);
 
-    localStorage['lit-e-key'] = encryptedSymmetricKey;
+    setEncryptedSymmetricKey(encryptedSymmetricKey);
     
   }
 
@@ -210,14 +211,13 @@ export default function Home() {
     
     const packagedData = {
       encryptedData: await encryptedData,
+      encryptedSymmetricKey,
       accessControlConditions: accessControlConditions.accessControlConditions,
     };
 
     console.log("packagedData:", packagedData);
 
     const packagedDataInString = JSON.stringify(packagedData);
-
-    console.log("btoa:", packagedDataInString);
 
     console.log("packagedDataInString:", packagedDataInString);
 
@@ -249,7 +249,7 @@ export default function Home() {
     const txId = (await upload.json()).txId;
 
     console.log("Uploaded! Transaction ID:", txId);
-
+    
     setTxId(txId);
     
   }
@@ -321,16 +321,13 @@ export default function Home() {
   // @return { void }
   // 
   const onDecryptDownloadedData = async () => {
-    
-    // get the encrypted key from the local storage, and convert it back to Uint8Array
-    const encryptedKey = new Uint8Array(localStorage['lit-e-key'].split(','));
 
     const authSig = await LitJsSdk.checkAndSignAuthMessage({chain: 'ethereum'})
 
     const symmetricKey = await litNodeClient.getEncryptionKey({
       accessControlConditions: downloadedEncryptedData.accessControlConditions,
       // Note, below we convert the encryptedSymmetricKey from a UInt8Array to a hex string.  This is because we obtained the encryptedSymmetricKey from "saveEncryptionKey" which returns a UInt8Array.  But the getEncryptionKey method expects a hex string.
-      toDecrypt: LitJsSdk.uint8arrayToString(encryptedKey, "base16"),
+      toDecrypt: LitJsSdk.uint8arrayToString(encryptedSymmetricKey, "base16"),
       chain: 'ethereum',
       authSig,
     });
@@ -433,7 +430,7 @@ export default function Home() {
         : 
         <>
           <Instruction title='5. Click to sign and upload to Arweave'
-            subtitle='We will combine both access control conditions and the encrypted image data as JSON, and turn it into String format'
+            subtitle='We will combine access control conditions, encrypted image data, and encrypted symmetric key as JSON, and turn it into String format'
           />
           
           {
@@ -460,7 +457,7 @@ export default function Home() {
         <>
           <h2>Decryption</h2>
           
-          <Instruction title='6. Click to fetch the encrypted data from Arweave' subtitle="The returned JSON data will have the encrypted image data (encryptedData), and one of the three parameters (accessControlConditions) required to retrieve the key shares from the lit nodes"/>
+          <Instruction title='6. Click to fetch the encrypted data from Arweave' subtitle="The returned JSON data will have two of the three required parameters, accessControlConditions and encryptedSymmetricKey to retrieve the key shares from the lit nodes"/>
           
           {
             (!JWK || !file || !accessControlConditions || !encryptedData || !downloadedEncryptedData ) 
@@ -480,7 +477,7 @@ export default function Home() {
         (!JWK || !file || !accessControlConditions || !encryptedData || !txId || !downloadedEncryptedData ) ? '' 
         : 
         <>
-          <Instruction title='7. Click to decrypt the downloaded encrypted data' subtitle="In the last step, we retrieved 'accessControlConditions' as one of our required parameters to unlock the symmetric key, we will now retrieve the rest. First, the encrypted symmetric key from your browser local storage, and the authentication signature from your wallet, then we pass all three information to the getEncryptionKey function. Now that we got the symmetric key, we can pass both symmetric key and encrypted data to the decryption function to unlock the original image"/>
+          <Instruction title='7. Click to decrypt the downloaded encrypted data' subtitle="In the last step, we retrieved 'accessControlConditions' and 'encryptedSymmetricKey` as two of the required parameters to unlock the symmetric key, the last required parameter is the authentication signature from your wallet. Now that we have got all three, we will pass it to the getEncryptionKey function to get the symmetric key, and pass both symmetric key and encrypted data to the decryption function to unlock the original image"/>
           
           {
             (!JWK || !file || !accessControlConditions || !encryptedData || !downloadedEncryptedData || !decryptedData ) 
