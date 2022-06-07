@@ -480,7 +480,7 @@ export default function Home() {
         (!JWK || !file || !accessControlConditions || !encryptedData || !txId || !downloadedEncryptedData ) ? '' 
         : 
         <>
-          <Instruction title='7. Click to decrypt the downloaded encrypted data' subtitle="In the last step, we retrieved 'accessControlConditions' as one of our required parameters to unlock the symmetric key, we will then retrieve the encrypted symmetric key from your browser local storage, and finally gather the authentication signature from your wallet. Now that we got the symmetric key, we can pass both symmetric key and encrypted data to the decryption function to unlock the original image"/>
+          <Instruction title='7. Click to decrypt the downloaded encrypted data' subtitle="In the last step, we retrieved 'accessControlConditions' as one of our required parameters to unlock the symmetric key, we will now retrieve the rest. First, the encrypted symmetric key from your browser local storage, and the authentication signature from your wallet, then we pass all three information to the getEncryptionKey function. Now that we got the symmetric key, we can pass both symmetric key and encrypted data to the decryption function to unlock the original image"/>
           
           {
             (!JWK || !file || !accessControlConditions || !encryptedData || !downloadedEncryptedData || !decryptedData ) 
