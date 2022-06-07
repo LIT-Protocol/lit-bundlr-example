@@ -123,7 +123,7 @@ export default function Home() {
   }, []);
 
   // 
-  // (LIT) Close share modal
+  // (LIT Modal) Close share modal
   // @return { void }
   // 
   const closeModal = () => {
@@ -131,7 +131,7 @@ export default function Home() {
   }
 
   // 
-  // (LIT) Set access control conditions
+  // (LIT Modal) Set access control conditions
   // @return { void }
   // 
   const onClickSetAccessControl = () => {
@@ -310,10 +310,6 @@ export default function Home() {
 
     setDownloadedEncryptedData(encryptedData);
 
-    // Get the decrypted key
-
-    // console.log(localStorage['lit-e-key']);
-
   }
 
   // 
@@ -331,8 +327,6 @@ export default function Home() {
       chain: 'ethereum',
       authSig,
     });
-
-    // console.log("symmetricKey:", symmetricKey);
 
     const decryptedString = await LitJsSdk.decryptString(
       dataURItoBlob(downloadedEncryptedData.encryptedData),

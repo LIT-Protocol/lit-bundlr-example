@@ -1,6 +1,5 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import Bundlr from '@bundlr-network/client';
-import prettyBytes from 'pretty-bytes';
 
 export default async function handler(req, res) {
 

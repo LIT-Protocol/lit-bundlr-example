@@ -6,7 +6,7 @@ Demo here: https://lit-bundlr.herokuapp.com/
 
 # Learn how it works technically
 
-- Following each step in `pages/index.js` 
+- Follow each step in `pages/index.js` 
   > eg. [Step 1](https://github.com/LIT-Protocol/lit-bundlr-example/blob/2d34f639ae196f18aa0eb5168c01342ceb708fc6/pages/index.js#L372) -> calls [onDropKey()](https://github.com/LIT-Protocol/lit-bundlr-example/blob/2d34f639ae196f18aa0eb5168c01342ceb708fc6/pages/index.js#L377) function
 
 - Arweave APIs `pages/api/arweave`
