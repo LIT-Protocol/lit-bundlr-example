@@ -1,3 +1,5 @@
+# 🚨 This repo uses a deprecated Lit network and a deprecated version of the Lit JS SDK. 
+
 # How to use Bundlr/Arweave with Lit
 
 This is an example project of showing you how to use bundlr/arweave with lit in the browser and on the backend
